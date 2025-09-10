@@ -1,3 +1,3 @@
 
-[signal, melody_index, pitch_mismatch] = SignalGenerator(1, 100, 3);
+[signal, melody_index, pitch_mismatch] = SignalGeneratorDV(1, 100 , 3);
 [melody__index_estimation, tuning_error] = SingleToneClassifier(signal);

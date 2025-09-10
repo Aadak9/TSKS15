@@ -45,11 +45,9 @@ for n_scale = 3:5 %Provided file with melodies only contain 3, 4 and 5th octave.
 end
 
 alphas = [0.975;1.025];
-H = zeros(20,12);
 for n = 1:12
     for j = 1:20
         
-
 
 
 
