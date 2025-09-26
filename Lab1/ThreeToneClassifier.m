@@ -1,0 +1,80 @@
+%Produced signal will be off pitch, multiplied by a small factor close to
+%1. Need to find this alpha mismatch. Either 0.975 or 1.025
+
+%Signal is corrupted with noise and sampled with 8820Hz.
+
+function [melody_index_estimation, tuning_mismatch] = ThreeToneClassifier(signal)
+
+note_duration = 0.4;
+pause_duration = 0.01;
+sampling_freq = 8820;
+
+y = signal;
+N = 12;
+J = 20; %Number of hypothesis
+K = 3616;
+samples_between_notes = pause_duration*sampling_freq;
+
+
+notes_char = {'C@','C#@','D@','D#@','E@','F@','F#@','G@','G#@','A@','A#@','B@'};
+notes_freq_1 = 440.*(2.^((-9:2)./12)); 
+notes_txt = {...
+    'C4', 'C4', 'G4', 'G4', 'A4', 'A4', 'G4', 'G4', 'F4', 'F4', 'E4', 'E4';...
+    'G4', 'G4', 'A4', 'E4', 'G4', 'G4', 'C5', 'D5', 'E5', 'E5', 'E5', 'D5';...
+    'G3', 'B3', 'D4', 'B4', 'G4', 'D4', 'G3', 'C4', 'E4', 'C5', 'G4', 'E4';...
+    'G4', 'G4', 'G4', 'B4', 'A4', 'A4', 'A4', 'C5', 'B4', 'G4', 'A4', 'F#4';...
+    'A3', 'D4', 'A3', 'E4', 'A3', 'F4', 'A3', 'G4', 'A3', 'F4', 'A3', 'E4';...
+    'B3', 'D#4', 'G4', 'D#5', 'B4', 'G4', 'C4', 'E4', 'G4', 'E5', 'C5', 'G4';...
+    'D3', 'A3', 'C4', 'F#4', 'D4', 'C4', 'D3', 'G3', 'C4', 'E4', 'C4', 'G3';...
+    'E4', 'E4', 'F4', 'G4', 'G4', 'F4', 'E4', 'D4', 'C4', 'C4', 'D4', 'E4';...
+    'E4', 'F4', 'G4', 'E4', 'G4', 'E4', 'G4', 'E4', 'G4', 'D5', 'C5', 'E4';...
+    'E5', 'D#5', 'E5', 'D#5', 'E5', 'B4', 'D5', 'C5', 'A4', 'E3', 'A3', 'C4'};
+
+
+
+[N_melodies,N_notes_per_melody] = size(notes_txt);
+
+
+freq_notes = zeros([N_melodies,N_notes_per_melody]);
+
+for n_scale = 1:8 
+    notes_char_t = strrep(notes_char,'@',num2str(n_scale)); 
+    for i_notes = 1:12
+        ind  = strfind(notes_txt,notes_char_t{i_notes});
+        freq_notes((~cellfun('isempty', ind))) = notes_freq_1(i_notes).*2.^(n_scale - 4 );
+    end
+end
+
+
+alphas = [0.975;1.025];
+H = cell(N,J);
+for n = 1:N
+    for j = 1:J
+        m = floor((j-1)/2)+1;
+        l = mod(j-1,2) + 1;
+        f_nj = freq_notes(m,n)*alphas(l);
+        H{n,j} = [cos(2*pi*f_nj*((0:K-1)/sampling_freq)'), sin(2*pi*f_nj*((0:K-1)/sampling_freq)'), ...
+            cos(2*pi*3*f_nj*((0:K-1)/sampling_freq)'), sin(2*pi*3*f_nj*((0:K-1)/sampling_freq)'),...
+            cos(2*pi*5*f_nj*((0:K-1)/sampling_freq)'), sin(2*pi*5*f_nj*((0:K-1)/sampling_freq)')];
+    end
+end
+%size(H{n,j})
+j_values = zeros(J, 1);
+
+
+for j = 1:J
+    current_sum = 0;
+    for n = 1:N
+        y_block = y((n-1)*K+1 : n*K);    
+        H_block = H{n,j};                
+        current_sum = current_sum + norm(H_block' * y_block)^2;
+    end
+    j_values(j) = current_sum;
+end
+
+%size(H_full_obs)
+
+[~, j_hat] = max(j_values);
+
+melody_index_estimation = floor((j_hat-1)/2)+1;
+tuning_mismatch = alphas(mod(j_hat-1,2)+1);

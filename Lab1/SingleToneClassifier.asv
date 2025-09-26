@@ -11,7 +11,8 @@ sampling_freq = 8820;
 
 y = signal;
 N = 12;
-K = note_duration* sampling_freq;
+J = 20; %Number of hypothesis
+K = 3616;
 samples_between_notes = pause_duration*sampling_freq;
 
 
@@ -36,7 +37,7 @@ notes_txt = {...
 
 freq_notes = zeros([N_melodies,N_notes_per_melody]);
 
-for n_scale = 3:5 %Provided file with melodies only contain 3, 4 and 5th octave.
+for n_scale = 1:8 %Provided file with melodies only contain 3, 4 and 5th octave.
     notes_char_t = strrep(notes_char,'@',num2str(n_scale)); 
     for i_notes = 1:12
         ind  = strfind(notes_txt,notes_char_t{i_notes});
@@ -44,10 +45,32 @@ for n_scale = 3:5 %Provided file with melodies only contain 3, 4 and 5th octave.
     end
 end
 
+
 alphas = [0.975;1.025];
-for n = 1:12
-    for j = 1:20
-        
+H = cell(N,J);
+for n = 1:N
+    for j = 1:J
+        m = floor((j-1)/2)+1;
+        l = mod(j-1,2) + 1;%Mismatch
+        f_nj = freq_notes(m,n)*alphas(l);
+        H{n,j} = [cos(2*pi*f_nj*(0:K-1)'), sin(2*pi*f_nj*(0:K-1)')];
+    end
+end
+
+stat_values = zeros(J, 1);
+
+for j= 1:J
+    H_full_obs = vertcat(H{:,j});
+    stat_values(j) = norm(H_full_obs'*y)^2;
+    size(H_full_obs)
+    size(y)
+end
+[~, j_hat] = max(stat_values);
+
+melody_index_estimation = floor((j_hat-1)/2)+1;
+tuning_mismatch = alphas(mod(j_hat-1,2)+1);
+
+
 
 
 

@@ -10,13 +10,16 @@ pause_duration = 0.01;
 sampling_freq = 8820;
 
 y = signal;
+%size(y)
 N = 12;
-K = note_duration* sampling_freq;
+J = 20; %Number of hypothesis
+K = 3616;
 samples_between_notes = pause_duration*sampling_freq;
 
-
+%%Start of copied code from the lab-pm. freq_notes will contain all the
+%%correct frequencies for each tone in each melody.
 notes_char = {'C@','C#@','D@','D#@','E@','F@','F#@','G@','G#@','A@','A#@','B@'};
-notes_freq_1 = 440.*(2.^((-9:2)./12)); %Frequencies from C4 to B4, 4th octave.
+notes_freq_1 = 440.*(2.^((-9:2)./12)); 
 notes_txt = {...
     'C4', 'C4', 'G4', 'G4', 'A4', 'A4', 'G4', 'G4', 'F4', 'F4', 'E4', 'E4';...
     'G4', 'G4', 'A4', 'E4', 'G4', 'G4', 'C5', 'D5', 'E5', 'E5', 'E5', 'D5';...
@@ -36,19 +39,43 @@ notes_txt = {...
 
 freq_notes = zeros([N_melodies,N_notes_per_melody]);
 
-for n_scale = 3:5 %Provided file with melodies only contain 3, 4 and 5th octave.
+for n_scale = 1:8 
     notes_char_t = strrep(notes_char,'@',num2str(n_scale)); 
     for i_notes = 1:12
         ind  = strfind(notes_txt,notes_char_t{i_notes});
-        freq_notes((~cellfun('isempty', ind))) = notes_freq_1(i_notes).*2.^(n_scale - 4 );%Octave calculation
+        freq_notes((~cellfun('isempty', ind))) = notes_freq_1(i_notes).*2.^(n_scale - 4 );
+    end
+end
+%End copied code
+
+alphas = [0.975;1.025]; %Potential frequency offset
+H = cell(N,J); %12x20 cell
+for n = 1:N
+    for j = 1:J
+        m = floor((j-1)/2)+1; %For two j-step, go upp one m-step
+        l = mod(j-1,2) + 1; %if j is odd, l=1, even => l=2
+        f_nj = freq_notes(m,n)*alphas(l); %According to lab-pm
+        H{n,j} = [cos(2*pi*f_nj*((0:K-1)/sampling_freq)'), sin(2*pi*f_nj*((0:K-1)/sampling_freq)')];%According to lab-pm
     end
 end
 
-alphas = [0.975;1.025];
-H = zeros(20,12);
-for n = 1:12
-    for j = 1:20
-        
+j_values = zeros(J, 1); %Columnvector that will be filled with every j
+
+for j = 1:J
+    current_sum = 0;
+    for n = 1:N
+        y_block = y((n-1)*K+1 : n*K); %Divide y into N blocks with length K   
+        H_block = H{n,j};                
+        current_sum = current_sum + norm(H_block' * y_block)^2; %Total energy for the frequency hypothesis j
+    end
+    j_values(j) = current_sum; %20x1 containing one j for each hypothesis
+end
+
+[~, j_hat] = max(j_values);
+
+melody_index_estimation = floor((j_hat-1)/2)+1; %Same logic as before, each melody-index
+%comes in par of two, so m=1 or m=2 corresponds to melody 1.
+tuning_mismatch = alphas(mod(j_hat-1,2)+1);%Calculates the correct alpha
 
 
 
