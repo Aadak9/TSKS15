@@ -109,10 +109,9 @@ for i = 1:length(SNR_db)
     end
     fourth_error_probabilities(i) = missclassification_error/runs;
 end
-size(error_probabilities)
-size(SNR_db)
 figure;
-plot(SNR_db, first_error_probabilities, '-o', 'DisplayName', 'SingleToneClassifier, 1 tone'); hold on;
+hold on;
+plot(SNR_db, first_error_probabilities, '-o', 'DisplayName', 'SingleToneClassifier, 1 tone'); 
 plot(SNR_db, second_error_probabilities, '-s', 'DisplayName', 'SingleToneClassifier, 3 tones');
 plot(SNR_db, third_error_probabilities, '-d', 'DisplayName', 'ThreeToneClassifier, 1 tone');
 plot(SNR_db, fourth_error_probabilities, '-^', 'DisplayName', 'ThreeToneClassifier, 3 tones');
@@ -120,6 +119,6 @@ plot(SNR_db, fourth_error_probabilities, '-^', 'DisplayName', 'ThreeToneClassifi
 xlabel('SNR [dB]');
 ylabel('Probability of error');
 title('Comparison of Classifiers and Number of Tones');
-legend('show');  % Visar alla etiketter
+legend('show');  
 grid on;
 
