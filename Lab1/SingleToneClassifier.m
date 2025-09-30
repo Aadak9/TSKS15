@@ -13,7 +13,7 @@ y = signal;
 %size(y)
 N = 12;
 J = 20; %Number of hypothesis
-K = 3616;
+K = 43392/N;
 samples_between_notes = pause_duration*sampling_freq;
 
 %%Start of copied code from the lab-pm. freq_notes will contain all the
@@ -40,7 +40,8 @@ notes_txt = {...
 freq_notes = zeros([N_melodies,N_notes_per_melody]);
 
 for n_scale = 1:8 
-    notes_char_t = strrep(notes_char,'@',num2str(n_scale)); 
+    notes_char_t = strrep(notes_char,'@',num2str(n_scale));%Replaces '@' with the n-th octave, melodies.txt only contains
+    %3,4 and 5-th octaves.
     for i_notes = 1:12
         ind  = strfind(notes_txt,notes_char_t{i_notes});
         freq_notes((~cellfun('isempty', ind))) = notes_freq_1(i_notes).*2.^(n_scale - 4 );
@@ -49,7 +50,7 @@ end
 %End copied code
 
 alphas = [0.975;1.025]; %Potential frequency offset
-H = cell(N,J); %12x20 cell
+H = cell(N,J); %12x20 cell-array
 for n = 1:N
     for j = 1:J
         m = floor((j-1)/2)+1; %For two j-step, go upp one m-step
@@ -59,18 +60,20 @@ for n = 1:N
     end
 end
 
-j_values = zeros(J, 1); %Columnvector that will be filled with every j
+j_values = zeros(J, 1); %Columnvector that will be filled with one j
+%for each hypothesis
 
 for j = 1:J
     current_sum = 0;
     for n = 1:N
-        y_block = y((n-1)*K+1 : n*K); %Divide y into N blocks with length K   
+        y_block = y((n-1)*K+1 : n*K); %Divide y into N blocks with length K, if n=1 then y_block=y(1:k) and
+        %if n=2 then y_block=y(K+1:2K)
         H_block = H{n,j};                
         current_sum = current_sum + norm(H_block' * y_block)^2; %Total energy for the frequency hypothesis j
     end
     j_values(j) = current_sum; %20x1 containing one j for each hypothesis
 end
-
+%j_values
 [~, j_hat] = max(j_values);
 
 melody_index_estimation = floor((j_hat-1)/2)+1; %Same logic as before, each melody-index

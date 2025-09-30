@@ -12,7 +12,7 @@ sampling_freq = 8820;
 y = signal;
 N = 12;
 J = 20; %Number of hypothesis
-K = 3616;
+K = 43392/N;
 samples_between_notes = pause_duration*sampling_freq;
 
 
@@ -50,7 +50,7 @@ alphas = [0.975;1.025];
 H = cell(N,J);
 for n = 1:N
     for j = 1:J
-        m = floor((j-1)/2)+1;
+        m = floor((j-1)/2) + 1;
         l = mod(j-1,2) + 1;
         f_nj = freq_notes(m,n)*alphas(l);
         H{n,j} = [cos(2*pi*f_nj*((0:K-1)/sampling_freq)'), sin(2*pi*f_nj*((0:K-1)/sampling_freq)'), ...
