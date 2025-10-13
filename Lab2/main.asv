@@ -7,8 +7,8 @@ Trange = [ -15:Ts :15];
 
 s1 = exp( -0.1* Trange .^2);
 s2 = exp( -0.1* Trange .^2) .*cos(Trange);
-e = sqrt(sigma_2)*randn(size(Trange));
-x = s2 + e;
+%e = sqrt(sigma_2)*randn(size(Trange));
+%x = s2 + e;
 
 
 figure;
@@ -19,12 +19,13 @@ xlabel('t')
 ylabel('Amplitude')
 
 
+%{
 figure;
 plot(Trange,x)
 legend('e with sigma^2=0.01')
 xlabel('t')
 ylabel('Amplitude')
-
+%}
 
 n = -100:100;         
 s1_sampled = exp(-0.1 * (n*Ts).^2);
@@ -48,33 +49,37 @@ s2_prime = gradient(s2_sampled, Ts);
 int_s1p2 = sum(s1_prime.^2) * Ts;
 int_s2p2 = sum(s2_prime.^2) * Ts;
 
-for i = length(sigma2_vals);
+for i = 1:length(sigma2_vals)
     sigma2 = sigma2_vals(i);
-    CRB_s1_values(i) = sigma2/int_s1p1;
+    CRB_s1_values(i) = sigma2/int_s1p2;
     CRB_s2_values(i) = sigma2/int_s2p2;    
 end
 SNR_linear = 1./sigma2_vals;
 SNR_dB = 10*log10(SNR_linear);
 
 figure;
-plot(SNR_dB,sqrt(CRB_s1_values), 'r', SNR_dB, sqrt(CRB_s2_values), 'BusyAction')
-legend('')
-xlabel('t')
-ylabel('Amplitude')
+loglog(SNR_linear, sqrt(CRB_s1_values), 'r', 'LineWidth', 1.5); hold on;
+loglog(SNR_linear, sqrt(CRB_s2_values), 'b', 'LineWidth', 1.5);
+yl = ylim;                  
+ylim([yl(1)/2, yl(2)*2]);   
+grid on;
+
+legend('√CRB for s₁(t)', '√CRB for s₂(t)', 'Location', 'southwest');
+xlabel('SNR (logarithmic scale)');
+ylabel('\surdCRB');
+title('\surdCRB vs SNR for s₁(t) and s₂(t)');
+
+
+set(gca, 'XScale', 'log', 'YScale', 'log');
 
 
 
 
 %ML estimation of T
-%{
-ML_estimation_vector = [];
-for  T = -5:Ts:5
-    sweep_signal = (exp( -0.1* (Trange-T) .^2) .*cos(Trange-T)).*x;
-    ML_estimation_vector(T) = sum(sweep_signal);
-end
-[~, idx] = max(ML_estimation_vector);
-T_hat = T(idx)
-%}
+Nmc = 1000;
+T_interval = [-5 5];
+Ts_grid = Ts/10;
+T_grid = T_interval(1):Ts_grid:
 
 
 
