@@ -1,12 +1,14 @@
+clc
 clear all
 close all
 
+%Given from labpm
 Ts = 0.1;
 Trange = [ -15:Ts :15];
 n = -100:100; 
 t = n*Ts;
 
-
+%Experiment with the value on sigma2 and plot
 s1 = exp( -0.1* Trange .^2);
 s2 = exp( -0.1* Trange .^2) .*cos(Trange);
 sigma_2 = 0.01;
@@ -22,13 +24,13 @@ xlabel('t')
 ylabel('Amplitude')
 
 
-%{
+
 figure;
 plot(Trange,x)
-legend('e with sigma^2=0.01')
+legend('x with sigma^2=0.01')
 xlabel('t')
 ylabel('Amplitude')
-%}
+
 
         
 s1_sampled = exp(-0.1 * (t).^2);
@@ -43,21 +45,10 @@ fprintf('E1 = %.4f, E2 = %.4f\n', E1, E2);
 fprintf('alpha1 = %.4f, alpha2 = %.4f\n', alpha1, alpha2);
 
 
-%ML estimation of T
-T_grid = -5:Ts:5;
-ML_estimation_vector = zeros(size(T_grid));
-for  k = 1:length(T_grid)
-    T_candidate = T_grid(k);
-    sweep_signal = (exp( -0.1* (Trange-T_candidate) .^2) .*cos(Trange-T_candidate));
-    sweep_signal_norm = sweep_signal/norm(sweep_signal);
-    ML_estimation_vector(k) = sum(sweep_signal_norm.*x);
-end
-[~, idx_max] = max(ML_estimation_vector);
-T_hat = T_grid(idx_max);
-
-
 
 %Q6, CRB and SNR
+%Preallocation and some calculations to avoid
+%doing this in every iteration, equation 3.14 in Kay 1
 sigma2_vals = 0.0001:0.001:1;
 CRB_s1_values = zeros(size(sigma2_vals));
 CRB_s2_values = zeros(size(sigma2_vals));
@@ -72,7 +63,7 @@ for i = 1:length(sigma2_vals)
     CRB_s2_values(i) = sigma2/int_s2p2;    
 end
 SNR_linear = 1./sigma2_vals;
-SNR_dB = 10*log10(SNR_linear);
+SNR_dB = 10*log10(SNR_linear);%Since I use loglog below, this variable is never used
 
 figure;
 loglog(SNR_linear, sqrt(CRB_s1_values), 'r', 'LineWidth', 1.5); hold on;
@@ -91,19 +82,21 @@ set(gca, 'XScale', 'log', 'YScale', 'log');
 
 
 Nmc = 500;
-T_range_montecarlo = [-5 5];
-grid_factor = 20;
+T_range_montecarlo = [-5 5];%Given in labpm
+grid_factor = 20;%arbitrary choosen but cant be to high or my computer would burn
 dT = Ts/grid_factor;
-T_grid = T_range_montecarlo(1):dT:T_range_montecarlo(2);
+T_grid = T_range_montecarlo(1):dT:T_range_montecarlo(2);%Grid from -5 to 5 with dT steps
 
-SNR_dB = 10:1:30;
+SNR_dB = 10:1:30;%Given in labpm
 SNR_linear = 10.^(SNR_dB/10);
 
+%Preallocation
 CRB_s1 = zeros(size(SNR_linear));
 CRB_s2 = zeros(size(SNR_linear));
 RMSE_s1 = zeros(size(SNR_linear));
 RMSE_s2 = zeros(size(SNR_linear));
 
+%CRB
 for k = 1:length(SNR_linear)
     sigma2 = 1/SNR_linear(k);
     CRB_s1(k) = sigma2/int_s1p2;
@@ -120,10 +113,11 @@ for k = 1:length(SNR_linear)
 
     for m = 1:Nmc
         % Random true delay
-        T0 = T_range_montecarlo(1) + (T_range_montecarlo(2)-T_range_montecarlo(1))*rand;
+        T0 = T_range_montecarlo(1) + (T_range_montecarlo(2)-T_range_montecarlo(1))*rand;%T0 between -5 and 5
         T0_vector(m) = T0;
 
-        % Generate delayed signals
+        % Generate delayed signals, important to normalize here before
+        % noise is added
         s1_delayed = exp(-0.1*(t - T0).^2);
         s1_delayed = s1_delayed / norm(s1_delayed);
         s2_delayed = exp(-0.1*(t - T0).^2).*cos(t - T0);
@@ -140,11 +134,11 @@ for k = 1:length(SNR_linear)
             Ti = T_grid(i);
             sweep_s1 = exp(-0.1*(t - Ti).^2);
             sweep_s1 = sweep_s1 / norm(sweep_s1);       % normalize
-            corr_s1(i) = sum(x1 .* sweep_s1);
+            corr_s1(i) = sum(x1 .* sweep_s1); %Given by labassistant
 
             sweep_s2 = exp(-0.1*(t - Ti).^2).*cos(t - Ti);
             sweep_s2 = sweep_s2 / norm(sweep_s2);       % normalize
-            corr_s2(i) = sum(x2 .* sweep_s2);
+            corr_s2(i) = sum(x2 .* sweep_s2); %Given by labassistant
         end
 
          % ML estimate = argmax correlation
@@ -160,7 +154,8 @@ for k = 1:length(SNR_linear)
 end
 
 figure; 
-hold on; grid on;
+hold on; 
+grid on;
 
 semilogy(SNR_dB, sqrt(CRB_s1), 'r--','LineWidth',1.5);
 semilogy(SNR_dB, sqrt(CRB_s2), 'b--','LineWidth',1.5);
@@ -172,4 +167,13 @@ ylabel('RMSE / \surdCRB [s]');
 legend('s1 √CRB','s2 √CRB','s1 RMSE','s2 RMSE','Location','northeast');
 title('Monte-Carlo RMSE vs SNR and √CRB for ML estimation of T');
 grid on;
+
+%CRB and SNR are proportional
+
+%Question 8
+%From equation 3.14 in Kay 1, the derivative of s2 will make the
+%denominator bigger because of the cosine-term, thus making the variance
+%lower
+
+
 
